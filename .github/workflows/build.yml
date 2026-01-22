@@ -1,0 +1,123 @@
+name: Build hooker
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            msystem: MINGW64
+            pkg_prefix: x86_64
+            build_script: build.cmd
+            zip_name: hooker-x64
+          - arch: x86
+            msystem: MINGW32
+            pkg_prefix: i686
+            build_script: build-x32.cmd
+            zip_name: hooker-x32
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        install: mingw-w64-${{ matrix.pkg_prefix }}-clang make
+        cache: true
+
+    - name: Build
+      shell: msys2 {0}
+      run: |
+        mkdir -p build
+        if [ "${{ matrix.arch }}" = "x64" ]; then
+          mkdir -p build
+          clang++ -O3 -shared -std=c++17 -o build/version.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 version.def
+          clang++ -O3 -shared -std=c++17 -o build/winmm.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 winmm.def
+          clang++ -O3 -shared -std=c++17 -o build/dinput8.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 dinput8.def
+        else
+          mkdir -p build-x32
+          clang++ -O3 -shared -std=c++17 -m32 -o build-x32/version.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 version.def
+          clang++ -O3 -shared -std=c++17 -m32 -o build-x32/winmm.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 winmm.def
+          clang++ -O3 -shared -std=c++17 -m32 -o build-x32/dinput8.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 dinput8.def
+        fi
+
+    - name: Create zip
+      shell: pwsh
+      run: |
+        if ("${{ matrix.arch }}" -eq "x64") {
+          Compress-Archive -Path build\*.dll -DestinationPath ${{ matrix.zip_name }}.zip
+        } else {
+          Compress-Archive -Path build-x32\*.dll -DestinationPath ${{ matrix.zip_name }}.zip
+        }
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.zip_name }}
+        path: ${{ matrix.zip_name }}.zip
+        retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    
+    steps:
+    - name: Download x64 artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: hooker-x64
+        path: ./release
+        
+    - name: Download x86 artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: hooker-x32
+        path: ./release
+        
+    - name: Generate release info
+      id: release_info
+      run: |
+        echo "tag=v$(date +'%Y.%m.%d')-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+        echo "date=$(date +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.release_info.outputs.tag }}
+        name: Hooker ${{ steps.release_info.outputs.tag }}
+        body: |          
+          **Build Date:** ${{ steps.release_info.outputs.date }}
+
+          Place `dinput8.dll | version.dll | winmm.dll` in the same folder as your exe
+
+          This will create a hooker.ini file in the same folder
+
+          ```ini
+          ; 0 = disabled, 1 = enabled
+          [DLL]
+          enable=0/1
+          target=.dll     ; DLL to intercept (hooks its exports)
+          replace=.dll    ; DLL with matching exports to redirect to
+
+          [ADC]
+          wintrust=0/1    ; Bypass WinVerifyTrust signature checks
+          ```
+        draft: false
+        prerelease: false
+        files: |
+          ./release/hooker-x64.zip
+          ./release/hooker-x32.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
