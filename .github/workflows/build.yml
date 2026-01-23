@@ -42,14 +42,14 @@ jobs:
         mkdir -p build
         if [ "${{ matrix.arch }}" = "x64" ]; then
           mkdir -p build
-          clang++ -O3 -shared -std=c++17 -o build/version.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 version.def
-          clang++ -O3 -shared -std=c++17 -o build/winmm.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 winmm.def
-          clang++ -O3 -shared -std=c++17 -o build/dinput8.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 dinput8.def
+          clang++ -O3 -static -shared -std=c++17 -o build/version.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 version.def
+          clang++ -O3 -static -shared -std=c++17 -o build/winmm.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 winmm.def
+          clang++ -O3 -static -shared -std=c++17 -o build/dinput8.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 dinput8.def
         else
           mkdir -p build-x32
-          clang++ -O3 -shared -std=c++17 -m32 -o build-x32/version.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 version.def
-          clang++ -O3 -shared -std=c++17 -m32 -o build-x32/winmm.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 winmm.def
-          clang++ -O3 -shared -std=c++17 -m32 -o build-x32/dinput8.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 dinput8.def
+          clang++ -O3 -static -shared -std=c++17 -m32 -o build-x32/version.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 version.def
+          clang++ -O3 -static -shared -std=c++17 -m32 -o build-x32/winmm.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 winmm.def
+          clang++ -O3 -static -shared -std=c++17 -m32 -o build-x32/dinput8.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 dinput8.def
         fi
 
     - name: Create zip

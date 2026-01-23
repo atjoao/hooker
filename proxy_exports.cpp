@@ -38,15 +38,15 @@ void FreeRealDll() {
 
 #define FORWARD(name)                                                          \
   static FARPROC _fp_##name = nullptr;                                         \
-  extern "C" __declspec(dllexport) LONG_PTR WINAPI _fwd_##name(                \
-      LONG_PTR a, LONG_PTR b, LONG_PTR c, LONG_PTR d, LONG_PTR e, LONG_PTR f,  \
-      LONG_PTR g, LONG_PTR h) {                                                \
+  extern "C" LONG_PTR __cdecl _fwd_##name(LONG_PTR a, LONG_PTR b, LONG_PTR c,  \
+                                          LONG_PTR d, LONG_PTR e, LONG_PTR f,  \
+                                          LONG_PTR g, LONG_PTR h) {            \
     if (!_fp_##name)                                                           \
       _fp_##name = GetRealProc(#name);                                         \
     if (!_fp_##name)                                                           \
       return 0;                                                                \
-    typedef LONG_PTR(WINAPI * fn_t)(LONG_PTR, LONG_PTR, LONG_PTR, LONG_PTR,    \
-                                    LONG_PTR, LONG_PTR, LONG_PTR, LONG_PTR);   \
+    typedef LONG_PTR(__cdecl * fn_t)(LONG_PTR, LONG_PTR, LONG_PTR, LONG_PTR,   \
+                                     LONG_PTR, LONG_PTR, LONG_PTR, LONG_PTR);  \
     return ((fn_t)_fp_##name)(a, b, c, d, e, f, g, h);                         \
   }
 
