@@ -116,6 +116,8 @@ jobs:
 
           [ADC]
           wintrust=0/1    ; Bypass WinVerifyTrust signature checks
+          LIMIT_CORE_COUNT=-1/core_count ; Limits current process to only use x amount of cores
+          IGNORE_ECORES=0/1 ; Disables use of ECORES when LIMIT_CORE_COUNT is set
           ```
         draft: false
         prerelease: false
