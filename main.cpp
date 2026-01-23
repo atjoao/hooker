@@ -5,9 +5,11 @@
 #include "minhook/include/MinHook.h"
 #include "proxy_exports.cpp"
 
+#include <algorithm>
 #include <string>
 #include <tlhelp32.h>
 #include <unordered_map>
+
 #include <windows.h>
 
 #pragma comment(lib, "wintrust.lib")
