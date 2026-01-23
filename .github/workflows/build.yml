@@ -103,7 +103,7 @@ jobs:
         body: |          
           **Build Date:** ${{ steps.release_info.outputs.date }}
 
-          Place `dinput8.dll | version.dll | winmm.dll` in the same folder as your exe
+          Place `dinput8.dll or version.dll or winmm.dll` (the one that game loads) in the same folder as your exe
 
           This will create a hooker.ini file in the same folder
 
