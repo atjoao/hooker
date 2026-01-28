@@ -7,6 +7,7 @@
 #include "proxy_exports.cpp"
 
 #include <algorithm>
+#include <sstream>
 #include <string>
 #include <tlhelp32.h>
 #include <unordered_map>
@@ -91,6 +92,13 @@ static bool IsExecutableAddress(LPVOID address) {
 }
 
 bool RedirectExports(HMODULE originalModule, HMODULE replacementModule) {
+	std::vector<std::string> ignoreExports;
+	std::string exportName;
+	std::istringstream f(g_config.ignoreExports);
+	while (std::getline(f, exportName, ',')) {
+		ignoreExports.push_back(exportName);
+	}
+	
 	if (!originalModule || !replacementModule)
 		return false;
 
@@ -138,6 +146,11 @@ bool RedirectExports(HMODULE originalModule, HMODULE replacementModule) {
 		const char *funcName = (const char *)((BYTE *)originalModule + nameRVAs[i]);
 		WORD ordinal = ordinals[i];
 		DWORD funcRVA = funcRVAs[ordinal];
+
+		if (std::find(ignoreExports.begin(), ignoreExports.end(), funcName) != ignoreExports.end()) {
+			g_logger.log(INFO, "Skipping ignored export: %s", funcName);
+			continue;
+		}
 
 		if (funcRVA >= exportDirRVA && funcRVA < exportDirRVA + exportDirSize) {
 			const char *forwardName =

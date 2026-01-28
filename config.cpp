@@ -14,6 +14,7 @@ struct Config {
   bool wintrustHook;
   int coreCount;
   bool ignoreEcores;
+  std::string ignoreExports;
 
   Config() : dllEnable(false), wintrustHook(false) {}
 };
@@ -74,7 +75,8 @@ public:
     // [ADC] section
     m_config.wintrustHook = getIniInt("ADC", "wintrust", 0) != 0;
     m_config.coreCount = getIniInt("ADC", "LIMIT_CORE_COUNT", -1);
-    m_config.ignoreEcores = getIniInt("ADC", "IGNORE_ECORES",  0) != 0;
+    m_config.ignoreEcores = getIniInt("ADC", "IGNORE_ECORES", 0) != 0;
+    m_config.ignoreExports = getIniString("ADC", "IGNORE_EXPORTS", "");
 
     return true;
   }
@@ -84,8 +86,10 @@ public:
     WritePrivateProfileStringA("DLL", "target", "", m_iniPath.c_str());
     WritePrivateProfileStringA("DLL", "replace", "", m_iniPath.c_str());
     WritePrivateProfileStringA("ADC", "wintrust", "0", m_iniPath.c_str());
-    WritePrivateProfileStringA("ADC", "LIMIT_CORE_COUNT", "-1", m_iniPath.c_str());
+    WritePrivateProfileStringA("ADC", "LIMIT_CORE_COUNT", "-1",
+                               m_iniPath.c_str());
     WritePrivateProfileStringA("ADC", "IGNORE_ECORES", "0", m_iniPath.c_str());
+    WritePrivateProfileStringA("ADC", "IGNORE_EXPORTS", "", m_iniPath.c_str());
     MessageBoxA(nullptr,
                 "Config file (hooker.ini) not found, created default config",
                 "Hooker", MB_OK);
