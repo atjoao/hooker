@@ -12,57 +12,51 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     
     strategy:
       matrix:
         include:
           - arch: x64
-            msystem: MINGW64
-            pkg_prefix: x86_64
-            build_script: build.cmd
+            target: x86_64-w64-mingw32
+            hde: hde64
+            build_dir: build
             zip_name: hooker-x64
           - arch: x86
-            msystem: MINGW32
-            pkg_prefix: i686
-            build_script: build-x32.cmd
+            target: i686-w64-mingw32
+            hde: hde32
+            build_dir: build-x32
             zip_name: hooker-x32
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup MSYS2
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: ${{ matrix.msystem }}
-        install: mingw-w64-${{ matrix.pkg_prefix }}-clang make
-        cache: true
+    - name: Setup compiler
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang lld mingw-w64
 
     - name: Build
-      shell: msys2 {0}
       run: |
-        mkdir -p build
-        if [ "${{ matrix.arch }}" = "x64" ]; then
-          mkdir -p build
-          clang++ -O3 -static -shared -std=c++17 -o build/version.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 version.def
-          clang++ -O3 -static -shared -std=c++17 -o build/winmm.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 winmm.def
-          clang++ -O3 -static -shared -std=c++17 -o build/dinput8.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde64.c -I minhook/include -lkernel32 -luser32 dinput8.def
-        else
-          mkdir -p build-x32
-          clang++ -O3 -static -shared -std=c++17 -m32 -o build-x32/version.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 version.def
-          clang++ -O3 -static -shared -std=c++17 -m32 -o build-x32/winmm.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 winmm.def
-          clang++ -O3 -static -shared -std=c++17 -m32 -o build-x32/dinput8.dll main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/hde32.c -I minhook/include -lkernel32 -luser32 dinput8.def
-        fi
+        mkdir -p ${{ matrix.build_dir }}
+        clang++ -O3 -static -shared -std=c++17 -fuse-ld=lld --target=${{ matrix.target }} \
+          -o ${{ matrix.build_dir }}/version.dll \
+          main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/${{ matrix.hde }}.c \
+          -I minhook/include -lkernel32 -luser32 version.def
+        clang++ -O3 -static -shared -std=c++17 -fuse-ld=lld --target=${{ matrix.target }} \
+          -o ${{ matrix.build_dir }}/winmm.dll \
+          main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/${{ matrix.hde }}.c \
+          -I minhook/include -lkernel32 -luser32 winmm.def
+        clang++ -O3 -static -shared -std=c++17 -fuse-ld=lld --target=${{ matrix.target }} \
+          -o ${{ matrix.build_dir }}/dinput8.dll \
+          main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/${{ matrix.hde }}.c \
+          -I minhook/include -lkernel32 -luser32 dinput8.def
 
     - name: Create zip
-      shell: pwsh
       run: |
-        if ("${{ matrix.arch }}" -eq "x64") {
-          Compress-Archive -Path build\*.dll -DestinationPath ${{ matrix.zip_name }}.zip
-        } else {
-          Compress-Archive -Path build-x32\*.dll -DestinationPath ${{ matrix.zip_name }}.zip
-        }
+        cd ${{ matrix.build_dir }}
+        zip ../${{ matrix.zip_name }}.zip *.dll
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
