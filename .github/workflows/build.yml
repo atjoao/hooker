@@ -18,12 +18,12 @@ jobs:
       matrix:
         include:
           - arch: x64
-            target: x86_64-w64-mingw32
+            cxx: x86_64-w64-mingw32-clang++
             hde: hde64
             build_dir: build
             zip_name: hooker-x64
           - arch: x86
-            target: i686-w64-mingw32
+            cxx: i686-w64-mingw32-clang++
             hde: hde32
             build_dir: build-x32
             zip_name: hooker-x32
@@ -32,23 +32,35 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup compiler
+    - name: Cache llvm-mingw
+      uses: actions/cache@v4
+      id: cache-llvm-mingw
+      with:
+        path: llvm-mingw-20250319-ucrt-ubuntu-20.04-x86_64
+        key: llvm-mingw-20250319-ucrt-ubuntu-20.04-x86_64
+
+    - name: Setup llvm-mingw
+      if: steps.cache-llvm-mingw.outputs.cache-hit != 'true'
       run: |
-        sudo apt-get update
-        sudo apt-get install -y clang lld mingw-w64
+        curl -L -o llvm-mingw.tar.xz "https://github.com/mstorsjo/llvm-mingw/releases/download/20250319/llvm-mingw-20250319-ucrt-ubuntu-20.04-x86_64.tar.xz"
+        tar -xf llvm-mingw.tar.xz
+        rm llvm-mingw.tar.xz
+
+    - name: Add llvm-mingw to PATH
+      run: echo "$PWD/llvm-mingw-20250319-ucrt-ubuntu-20.04-x86_64/bin" >> $GITHUB_PATH
 
     - name: Build
       run: |
         mkdir -p ${{ matrix.build_dir }}
-        clang++ -O3 -static -shared -std=c++17 -fuse-ld=lld --target=${{ matrix.target }} \
+        ${{ matrix.cxx }} -O3 -static -shared -std=c++17 \
           -o ${{ matrix.build_dir }}/version.dll \
           main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/${{ matrix.hde }}.c \
           -I minhook/include -lkernel32 -luser32 version.def
-        clang++ -O3 -static -shared -std=c++17 -fuse-ld=lld --target=${{ matrix.target }} \
+        ${{ matrix.cxx }} -O3 -static -shared -std=c++17 \
           -o ${{ matrix.build_dir }}/winmm.dll \
           main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/${{ matrix.hde }}.c \
           -I minhook/include -lkernel32 -luser32 winmm.def
-        clang++ -O3 -static -shared -std=c++17 -fuse-ld=lld --target=${{ matrix.target }} \
+        ${{ matrix.cxx }} -O3 -static -shared -std=c++17 \
           -o ${{ matrix.build_dir }}/dinput8.dll \
           main.cpp minhook/src/buffer.c minhook/src/hook.c minhook/src/trampoline.c minhook/src/hde/${{ matrix.hde }}.c \
           -I minhook/include -lkernel32 -luser32 dinput8.def
