@@ -1,5 +1,5 @@
+#define WIN32_LEAN_AND_MEAN
 #pragma once
-#include "minhook/include/MinHook.h"
 #include <cstdlib>
 #include <string>
 #include <windows.h>

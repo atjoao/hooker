@@ -1,6 +1,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 
+#include <windows.h>
 #include "config.cpp"
 #include "logging.cpp"
 #include "minhook/include/MinHook.h"
@@ -17,7 +18,6 @@
 #include <vector>
 #include <winnt.h>
 
-#include <windows.h>
 
 #pragma comment(lib, "wintrust.lib")
 
